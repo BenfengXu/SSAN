@@ -6,7 +6,7 @@ for Document-Level Relation Extraction](https://arxiv.org/abs/2102.10249)).
 And in the scenerio of document-level relation extraction, we consider the **structure of entities**.
 Specificly, we propose a transformation module, that produces attentive biases based on the structure prior so as to adaptively regularize the attention flow within and throughout the encoding stage.
 We achieve SOTA results on several document-level relation extraction tasks.  
-This implementation is adapted based on [huggingface transformers](https://github.com/huggingface/transformers), the key revision is how we extend the vanilla self-attention of Transformers, you can find the SSAN model details in [`./model/modeling_bert.py#L267-L280`](./model/modeling_bert.py#L123-L150).
+This implementation is adapted based on [huggingface transformers](https://github.com/huggingface/transformers), the key revision is how we extend the vanilla self-attention of Transformers, you can find the SSAN model details in [`./model/modeling_bert.py#L267-L280`](./model/modeling_bert.py#L267-L280).
 You can also find our paddlepaddle implementation in [here](https://github.com/PaddlePaddle/Research/tree/master/KG/AAAI2021_SSAN).
 <div  align="center">  
 <img src="./SSAN.png" width = "466.4" height = "294.4" alt="Tagging Strategy" align=center />
