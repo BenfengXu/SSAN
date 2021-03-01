@@ -1,0 +1,1 @@
+This is the directory for your downloaded DocRED dataset.
