@@ -226,8 +226,8 @@ class BertSelfAttention(nn.Module):
                 self.bili = nn.ParameterList(
                     [nn.Parameter(nn.init.xavier_uniform_(torch.empty(self.num_attention_heads, self.attention_head_size, self.attention_head_size)))
                      for _ in range(num_structural_dependencies)])
-                self.abs_bias = nn.ParameterList(
-                    [nn.Parameter(torch.zeros(self.num_attention_heads)) for _ in range(num_structural_dependencies)])
+            self.abs_bias = nn.ParameterList(
+                [nn.Parameter(torch.zeros(self.num_attention_heads)) for _ in range(num_structural_dependencies)])
 
     def transpose_for_scores(self, x):
         new_x_shape = x.size()[:-1] + (self.num_attention_heads, self.attention_head_size)
