@@ -214,8 +214,8 @@ class BertSelfAttention(nn.Module):
         self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
 
         # ==================SSAN==================
+        self.entity_structure = entity_structure
         if entity_structure != 'none':
-            self.entity_structure = entity_structure
             num_structural_dependencies = 5  # 5 distinct dependencies of entity structure, please refer to our paper.
             if entity_structure == 'decomp':
                 self.bias_layer_k = nn.ParameterList(
