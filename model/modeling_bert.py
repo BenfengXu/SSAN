@@ -963,7 +963,7 @@ class BertForDocRED(BertPreTrainedModel):
         ent_rep_t = ent_rep.unsqueeze(1).repeat(1, self.max_ent_cnt, 1, 1)
 
         # concate distance feature
-        if self.self.with_naive_feature:
+        if self.with_naive_feature:
             ent_rep_h = torch.cat([ent_rep_h, self.distance_emb(ent_distance)], dim=-1)
             ent_rep_t = torch.cat([ent_rep_t, self.distance_emb(20 - ent_distance)], dim=-1)
 
