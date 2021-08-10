@@ -17,6 +17,7 @@
 import logging
 import os
 
+import dataclasses
 from dataclasses import dataclass
 from typing import Optional
 import json
@@ -43,6 +44,7 @@ def docred_convert_examples_to_features(
     max_ent_cnt=42,
     label_map=None,
     pad_token=0,
+    verbose=False,
 ):
     """
     Loads a data file into a list of ``InputFeatures``
@@ -228,7 +230,7 @@ def docred_convert_examples_to_features(
         assert ent_distance.shape == (max_ent_cnt, max_ent_cnt)
         assert structure_mask.shape == (5, max_length, max_length)
 
-        if ex_index == 42:
+        if ex_index == 42 and verbose:
             logger.info("*** Example ***")
             logger.info("guid: %s" % example.guid)
             logger.info("doc: %s" % (' '.join([' '.join(sent) for sent in example.sents])))
@@ -297,6 +299,12 @@ class DocREDProcessor(object):
             examples = json.load(f)
         return self._create_examples(examples, 'test')
 
+    def get_examples_from_file(self, file_path):
+        with open(file_path, 'r') as f:
+            examples = json.load(f)
+        return self._create_examples(examples, 'test')
+
+
     def get_label_map(self, data_dir):
         """See base class."""
         with open(os.path.join(data_dir, "label_map.json"), 'r') as f:
@@ -325,10 +333,19 @@ class DocREDExample:
     sents: list
     labels: Optional[list] = None
 
-    def to_json_string(self):
+    def to_json_string(self, pprint=False):
         """Serializes this instance to a JSON string."""
-        return json.dumps(dataclasses.asdict(self), indent=2, sort_keys=True) + "\n"
+        if pprint:
+            return json.dumps(dataclasses.asdict(self), indent=2, sort_keys=True) + "\n"
+        else:
+            return json.dumps(dataclasses.asdict(self))
 
+
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, numpy.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
 
 class DocREDInputFeatures(object):
     """
@@ -363,6 +380,9 @@ class DocREDInputFeatures(object):
         output = copy.deepcopy(self.__dict__)
         return output
 
-    def to_json_string(self):
+    def to_json_string(self, pprint=False):
         """Serializes this instance to a JSON string."""
-        return json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n"
+        if pprint:
+            return json.dumps(self.to_dict(), indent=2, sort_keys=True, cls=NumpyEncoder) + "\n"
+        else:
+            return json.dumps(self.to_dict(), cls=NumpyEncoder)

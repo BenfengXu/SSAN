@@ -431,6 +431,119 @@ def predict(args, model, tokenizer, prefix=""):
     with open(output_eval_file, 'w') as f:
         json.dump(output_preds_thresh, f)
 
+def features_to_tensor_dataset(features):
+
+    # Convert to Tensors and build dataset
+    all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
+    all_attention_mask = torch.tensor([f.attention_mask for f in features], dtype=torch.long)
+    all_token_type_ids = torch.tensor([f.token_type_ids for f in features], dtype=torch.long)
+    all_ent_mask = torch.tensor([f.ent_mask for f in features], dtype=torch.float)
+    all_ent_ner = torch.tensor([f.ent_ner for f in features], dtype=torch.long)
+    all_ent_pos = torch.tensor([f.ent_pos for f in features], dtype=torch.long)
+    all_ent_distance = torch.tensor([f.ent_distance for f in features], dtype=torch.long)
+    all_structure_mask = torch.tensor([f.structure_mask for f in features], dtype=torch.bool)
+    all_label = torch.tensor([f.label for f in features], dtype=torch.bool)
+    all_label_mask = torch.tensor([f.label_mask for f in features], dtype=torch.bool)
+
+    dataset = TensorDataset(all_input_ids, all_attention_mask, all_token_type_ids,
+                            all_ent_mask, all_ent_ner, all_ent_pos, all_ent_distance,
+                            all_structure_mask, all_label, all_label_mask)
+
+    return dataset
+
+def predict_from_examples_and_features(args, model, tokenizer, examples, features, prefix=""):
+    processor = DocREDProcessor()
+    pred_examples = examples
+
+    label_map = processor.get_label_map(args.data_dir)
+    predicate_map = {}
+    for predicate in label_map.keys():
+        predicate_map[label_map[predicate]] = predicate
+
+    eval_dataset = features_to_tensor_dataset(features)
+
+    args.eval_batch_size = args.per_gpu_eval_batch_size * max(1, args.n_gpu)
+    # Note that DistributedSampler samples randomly
+    eval_sampler = SequentialSampler(eval_dataset)
+    eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=args.eval_batch_size)
+
+    # multi-gpu eval
+    if args.n_gpu > 1 and not isinstance(model, torch.nn.DataParallel):
+        model = torch.nn.DataParallel(model)
+
+    # Eval!
+    logger.info("***** Running evaluation {} *****".format(prefix))
+    logger.info("  Num examples = %d", len(eval_dataset))
+    logger.info("  Batch size = %d", args.eval_batch_size)
+    eval_loss = 0.0
+    nb_eval_steps = 0
+    preds = None
+    ent_masks = None
+    out_label_ids = None
+    for batch in tqdm(eval_dataloader, desc="Evaluating"):
+        model.eval()
+        batch = tuple(t.to(args.device) for t in batch)
+
+        with torch.no_grad():
+            inputs = {"input_ids": batch[0],
+                      "attention_mask": batch[1],
+                      "token_type_ids": batch[2] if args.model_type == 'bert' else None,
+                      "ent_mask": batch[3],
+                      "ent_ner": batch[4],
+                      "ent_pos": batch[5],
+                      "ent_distance": batch[6],
+                      "structure_mask": batch[7],
+                      "label": batch[8],
+                      "label_mask": batch[9],
+                      }
+
+            outputs = model(**inputs)
+            tmp_eval_loss, logits = outputs[:2]
+
+            eval_loss += tmp_eval_loss.mean().item()
+        nb_eval_steps += 1
+        if preds is None:
+            preds = logits.detach().cpu().numpy()
+            ent_masks = inputs["ent_mask"].detach().cpu().numpy()
+            out_label_ids = inputs["label"].detach().cpu().numpy()
+        else:
+            preds = np.append(preds, logits.detach().cpu().numpy(), axis=0)
+            ent_masks = np.append(ent_masks, inputs["ent_mask"].detach().cpu().numpy(), axis=0)
+            out_label_ids = np.append(out_label_ids, inputs["label"].detach().cpu().numpy(), axis=0)
+
+    eval_loss = eval_loss / nb_eval_steps
+    print("eval_loss: {}".format(eval_loss))
+    output_preds = []
+    for (i, (example, pred, ent_mask)) in enumerate(zip(pred_examples, preds, ent_masks)):
+        for h in range(len(example.vertexSet)):
+            for t in range(len(example.vertexSet)):
+                if h == t:
+                    continue
+                if np.all(ent_mask[h] == 0) or np.all(ent_mask[t] == 0):
+                    continue
+                for predicate_id, logit in enumerate(pred[h][t]):
+                    if predicate_id == 0:
+                        continue
+                    else:
+                        output_preds.append((logit, example.title, h, t, predicate_map[predicate_id]))
+    output_preds.sort(key=lambda x: x[0], reverse=True)
+    output_preds_thresh = []
+    for i in range(len(output_preds)):
+        if output_preds[i][0] < args.predict_thresh:
+            break
+        output_preds_thresh.append({"title": output_preds[i][1],
+                                    "h_idx": output_preds[i][2],
+                                    "t_idx": output_preds[i][3],
+                                    "r": output_preds[i][4],
+                                    "evidence": []
+                                    })
+    # write pred file
+    if not os.path.exists('./data/DocRED/') and args.local_rank in [-1, 0]:
+        os.makedirs('./data/DocRED')
+    output_eval_file = os.path.join(args.checkpoint_dir, "result.json")
+    with open(output_eval_file, 'w') as f:
+        json.dump(output_preds_thresh, f)
+
 
 def load_and_cache_examples(args, tokenizer, evaluate=False, predict=False):
     if args.local_rank not in [-1, 0] and not evaluate:
@@ -478,8 +591,7 @@ def load_and_cache_examples(args, tokenizer, evaluate=False, predict=False):
 
     return dataset
 
-
-def main():
+def setup_SSAN_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--max_ent_cnt",
@@ -609,6 +721,12 @@ def main():
     parser.add_argument("--local_rank", type=int, default=-1, help="For distributed training: local_rank")
     parser.add_argument("--server_ip", type=str, default="", help="For distant debugging.")
     parser.add_argument("--server_port", type=str, default="", help="For distant debugging.")
+
+    return parser
+
+
+def main():
+    parser = setup_SSAN_parser()
     args = parser.parse_args()
 
     ModelArch = None
