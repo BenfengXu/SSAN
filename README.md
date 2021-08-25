@@ -59,15 +59,13 @@ zip result.zip result.json
 ```
 
 
-## Citation (Arxiv version, waiting for the official proceeding.)
-If you use any source code included in this project in your work, please cite the following paper:
+## Citation
+You can cite us as:
 ```
-@misc{xu2021entity,
-      title={Entity Structure Within and Throughout: Modeling Mention Dependencies for Document-Level Relation Extraction}, 
-      author={Benfeng Xu and Quan Wang and Yajuan Lyu and Yong Zhu and Zhendong Mao},
-      year={2021},
-      eprint={2102.10249},
-      archivePrefix={arXiv},
-      primaryClass={cs.CL}
+@article{xu2021entity,
+  title={Entity Structure Within and Throughout: Modeling Mention Dependencies for Document-Level Relation Extraction},
+  author={Xu, Benfeng and Wang, Quan and Lyu, Yajuan and Zhu, Yong and Mao, Zhendong},
+  journal={arXiv preprint arXiv:2102.10249},
+  year={2021}
 }
 ```
