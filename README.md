@@ -14,7 +14,7 @@ You can also find our paddlepaddle implementation in [here](https://github.com/P
 
 
 ## Requirements
- * python3.6, transformers==2.7.0  
+ * python3.6, pytorch==1.4.0, transformers==2.7.0  
  * This implementation is tested on a single 32G V100 GPU with CUDA version=10.2 and Driver version=440.33.01.
 
 
