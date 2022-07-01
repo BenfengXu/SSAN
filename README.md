@@ -62,10 +62,5 @@ zip result.zip result.json
 ## Citation
 You can cite us as:
 ```
-@article{xu2021entity,
-  title={Entity Structure Within and Throughout: Modeling Mention Dependencies for Document-Level Relation Extraction},
-  author={Xu, Benfeng and Wang, Quan and Lyu, Yajuan and Zhu, Yong and Mao, Zhendong},
-  journal={arXiv preprint arXiv:2102.10249},
-  year={2021}
-}
+@article{Xu_Wang_Lyu_Zhu_Mao_2021, title={Entity Structure Within and Throughout: Modeling Mention Dependencies for Document-Level Relation Extraction}, volume={35}, url={https://ojs.aaai.org/index.php/AAAI/article/view/17665}, abstractNote={Entities, as the essential elements in relation extraction tasks, exhibit certain structure. In this work, we formulate such entity structure as distinctive dependencies between mention pairs. We then propose SSAN, which incorporates these structural dependencies within the standard self-attention mechanism and throughout the overall encoding stage. Specifically, we design two alternative transformation modules inside each self-attention building block to produce attentive biases so as to adaptively regularize its attention flow. Our experiments demonstrate the usefulness of the proposed entity structure and the effectiveness of SSAN. It significantly outperforms competitive baselines, achieving new state-of-the-art results on three popular document-level relation extraction datasets. We further provide ablation and visualization to show how the entity structure guides the model for better relation extraction. Our code is publicly available.}, number={16}, journal={Proceedings of the AAAI Conference on Artificial Intelligence}, author={Xu, Benfeng and Wang, Quan and Lyu, Yajuan and Zhu, Yong and Mao, Zhendong}, year={2021}, month={May}, pages={14149-14157} }
 ```
